@@ -27,6 +27,7 @@
 #include <deal.II/base/parameter_acceptor.h>
 #include <deal.II/base/parsed_convergence_table.h>
 #include <deal.II/base/quadrature_lib.h>
+#include <deal.II/base/timer.h>
 
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_tools.h>
@@ -45,6 +46,9 @@
 #include <deal.II/lac/solver_cg.h>
 #include <deal.II/lac/sparse_matrix.h>
 #include <deal.II/lac/vector.h>
+
+#include <deal.II/meshworker/copy_data.h>
+#include <deal.II/meshworker/scratch_data.h>
 
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/matrix_tools.h>
@@ -86,15 +90,37 @@ public:
   void
   parse_string(const std::string &par);
 
+  using CopyData    = MeshWorker::CopyData<1, 1, 1>;
+  using ScratchData = MeshWorker::ScratchData<dim>;
+
 protected:
   void
+  assemble_system_one_cell(
+    const typename DoFHandler<dim>::active_cell_iterator &cell,
+    ScratchData &                                         scratch,
+    CopyData &                                            copy);
+
+
+  void
+  copy_one_cell(const CopyData &copy);
+
+  void
   make_grid();
+
   void
   refine_grid();
+
   void
   setup_system();
+
   void
   assemble_system();
+
+  void
+  assemble_system_on_range(
+    const typename DoFHandler<dim>::active_cell_iterator &begin,
+    const typename DoFHandler<dim>::active_cell_iterator &end);
+
   void
   solve();
   void
@@ -103,6 +129,8 @@ protected:
   mark();
   void
   output_results(const unsigned cycle) const;
+
+  mutable TimerOutput timer;
 
   Triangulation<dim>                    triangulation;
   std::unique_ptr<FE_Q<dim>>            fe;
@@ -133,6 +161,7 @@ protected:
   unsigned int n_refinements       = 4;
   unsigned int n_refinement_cycles = 1;
   std::string  output_filename     = "poisson";
+  int          number_of_threads   = -1;
 
   std::set<types::boundary_id> dirichlet_ids = {0};
   std::set<types::boundary_id> neumann_ids;

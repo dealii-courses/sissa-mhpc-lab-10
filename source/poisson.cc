@@ -20,11 +20,16 @@
 #include "poisson.h"
 
 #include <deal.II/base/multithread_info.h>
+#include <deal.II/base/thread_management.h>
+#include <deal.II/base/work_stream.h>
 
 #include <deal.II/grid/grid_refinement.h>
 
 #include <deal.II/lac/sparse_direct.h>
 #include <deal.II/lac/trilinos_precondition.h>
+
+#include <deal.II/meshworker/copy_data.h>
+#include <deal.II/meshworker/scratch_data.h>
 
 #include <deal.II/numerics/error_estimator.h>
 
@@ -32,9 +37,11 @@ using namespace dealii;
 
 template <int dim>
 Poisson<dim>::Poisson()
-  : dof_handler(triangulation)
+  : timer(std::cout, TimerOutput::summary, TimerOutput::cpu_and_wall_times)
+  , dof_handler(triangulation)
   , solver_control("Solver control", 1000, 1e-12, 1e-12)
 {
+  TimerOutput::Scope timer_section(timer, "constructor");
   add_parameter("Finite element degree", fe_degree);
   add_parameter("Mapping degree", mapping_degree);
   add_parameter("Number of global refinements", n_refinements);
@@ -43,6 +50,7 @@ Poisson<dim>::Poisson()
   add_parameter("Dirichlet boundary condition expression",
                 dirichlet_boundary_conditions_expression);
   add_parameter("Coefficient expression", coefficient_expression);
+  add_parameter("Number of threads", number_of_threads);
   add_parameter("Exact solution expression", exact_solution_expression);
   add_parameter("Neumann boundary condition expression",
                 neumann_boundary_conditions_expression);
@@ -85,6 +93,7 @@ template <int dim>
 void
 Poisson<dim>::initialize(const std::string &filename)
 {
+  TimerOutput::Scope timer_section(timer, "initialize");
   ParameterAcceptor::initialize(filename,
                                 "last_used_parameters.prm",
                                 ParameterHandler::Short);
@@ -96,6 +105,7 @@ template <int dim>
 void
 Poisson<dim>::parse_string(const std::string &parameters)
 {
+  TimerOutput::Scope timer_section(timer, "parse_string");
   ParameterAcceptor::prm.parse_input_from_string(parameters);
   ParameterAcceptor::parse_all_parameters();
 }
@@ -106,6 +116,8 @@ template <int dim>
 void
 Poisson<dim>::make_grid()
 {
+  TimerOutput::Scope timer_section(timer, "make_grid");
+
   const auto vars = dim == 1 ? "x" : dim == 2 ? "x,y" : "x,y,z";
   pre_refinement.initialize(vars, pre_refinement_expression, constants);
   GridGenerator::generate_from_name_and_arguments(triangulation,
@@ -130,6 +142,7 @@ template <int dim>
 void
 Poisson<dim>::refine_grid()
 {
+  TimerOutput::Scope timer_section(timer, "refine_grid");
   // Cells have been marked in the mark() method.
   triangulation.execute_coarsening_and_refinement();
 }
@@ -140,6 +153,7 @@ template <int dim>
 void
 Poisson<dim>::setup_system()
 {
+  TimerOutput::Scope timer_section(timer, "setup_system");
   if (!fe)
     {
       fe              = std::make_unique<FE_Q<dim>>(fe_degree);
@@ -181,69 +195,126 @@ Poisson<dim>::setup_system()
 
 template <int dim>
 void
-Poisson<dim>::assemble_system()
+Poisson<dim>::assemble_system_one_cell(
+  const typename DoFHandler<dim>::active_cell_iterator &cell,
+  ScratchData &                                         scratch,
+  CopyData &                                            copy)
+{
+  auto &cell_matrix = copy.matrices[0];
+  auto &cell_rhs    = copy.vectors[0];
+
+  cell->get_dof_indices(copy.local_dof_indices[0]);
+
+  const auto &fe_values = scratch.reinit(cell);
+  cell_matrix           = 0;
+  cell_rhs              = 0;
+
+  for (const unsigned int q_index : fe_values.quadrature_point_indices())
+    {
+      for (const unsigned int i : fe_values.dof_indices())
+        for (const unsigned int j : fe_values.dof_indices())
+          cell_matrix(i, j) +=
+            (coefficient.value(fe_values.quadrature_point(q_index)) * // a(x_q)
+             fe_values.shape_grad(i, q_index) * // grad phi_i(x_q)
+             fe_values.shape_grad(j, q_index) * // grad phi_j(x_q)
+             fe_values.JxW(q_index));           // dx
+      for (const unsigned int i : fe_values.dof_indices())
+        cell_rhs(i) +=
+          (fe_values.shape_value(i, q_index) * // phi_i(x_q)
+           forcing_term.value(fe_values.quadrature_point(q_index)) * // f(x_q)
+           fe_values.JxW(q_index));                                  // dx
+    }
+
+  if (cell->at_boundary())
+    //  for(const auto face: cell->face_indices())
+    for (unsigned int f = 0; f < GeometryInfo<dim>::faces_per_cell; ++f)
+      if (neumann_ids.find(cell->face(f)->boundary_id()) != neumann_ids.end())
+        {
+          auto &fe_face_values = scratch.reinit(cell, f);
+          for (const unsigned int q_index :
+               fe_face_values.quadrature_point_indices())
+            for (const unsigned int i : fe_face_values.dof_indices())
+              cell_rhs(i) += fe_face_values.shape_value(i, q_index) *
+                             neumann_boundary_condition.value(
+                               fe_face_values.quadrature_point(q_index)) *
+                             fe_face_values.JxW(q_index);
+        }
+}
+
+
+
+template <int dim>
+void
+Poisson<dim>::copy_one_cell(const CopyData &copy)
+{
+  constraints.distribute_local_to_global(copy.matrices[0],
+                                         copy.vectors[0],
+                                         copy.local_dof_indices[0],
+                                         system_matrix,
+                                         system_rhs);
+}
+
+
+
+template <int dim>
+void
+Poisson<dim>::assemble_system_on_range(
+  const typename DoFHandler<dim>::active_cell_iterator &begin,
+  const typename DoFHandler<dim>::active_cell_iterator &end)
 {
   QGauss<dim>     quadrature_formula(fe->degree + 1);
   QGauss<dim - 1> face_quadrature_formula(fe->degree + 1);
 
-  FEValues<dim> fe_values(*mapping,
-                          *fe,
-                          quadrature_formula,
-                          update_values | update_gradients |
-                            update_quadrature_points | update_JxW_values);
+  ScratchData scratch(*mapping,
+                      *fe,
+                      quadrature_formula,
+                      update_values | update_gradients |
+                        update_quadrature_points | update_JxW_values,
+                      face_quadrature_formula,
+                      update_values | update_quadrature_points |
+                        update_JxW_values);
 
-  FEFaceValues<dim> fe_face_values(*mapping,
-                                   *fe,
-                                   face_quadrature_formula,
-                                   update_values | update_quadrature_points |
-                                     update_JxW_values);
+  CopyData copy(fe->n_dofs_per_cell());
 
-  const unsigned int dofs_per_cell = fe->n_dofs_per_cell();
-  FullMatrix<double> cell_matrix(dofs_per_cell, dofs_per_cell);
-  Vector<double>     cell_rhs(dofs_per_cell);
-  std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
-  for (const auto &cell : dof_handler.active_cell_iterators())
+  static Threads::Mutex assemble_mutex;
+
+  for (auto cell = begin; cell != end; ++cell)
     {
-      fe_values.reinit(cell);
-      cell_matrix = 0;
-      cell_rhs    = 0;
-      for (const unsigned int q_index : fe_values.quadrature_point_indices())
-        {
-          for (const unsigned int i : fe_values.dof_indices())
-            for (const unsigned int j : fe_values.dof_indices())
-              cell_matrix(i, j) +=
-                (coefficient.value(
-                   fe_values.quadrature_point(q_index)) * // a(x_q)
-                 fe_values.shape_grad(i, q_index) *       // grad phi_i(x_q)
-                 fe_values.shape_grad(j, q_index) *       // grad phi_j(x_q)
-                 fe_values.JxW(q_index));                 // dx
-          for (const unsigned int i : fe_values.dof_indices())
-            cell_rhs(i) += (fe_values.shape_value(i, q_index) * // phi_i(x_q)
-                            forcing_term.value(
-                              fe_values.quadrature_point(q_index)) * // f(x_q)
-                            fe_values.JxW(q_index));                 // dx
-        }
-
-      if (cell->at_boundary())
-        //  for(const auto face: cell->face_indices())
-        for (unsigned int f = 0; f < GeometryInfo<dim>::faces_per_cell; ++f)
-          if (neumann_ids.find(cell->face(f)->boundary_id()) !=
-              neumann_ids.end())
-            {
-              fe_face_values.reinit(cell, f);
-              for (const unsigned int q_index :
-                   fe_face_values.quadrature_point_indices())
-                for (const unsigned int i : fe_face_values.dof_indices())
-                  cell_rhs(i) += fe_face_values.shape_value(i, q_index) *
-                                 neumann_boundary_condition.value(
-                                   fe_face_values.quadrature_point(q_index)) *
-                                 fe_face_values.JxW(q_index);
-            }
-
-      cell->get_dof_indices(local_dof_indices);
-      constraints.distribute_local_to_global(
-        cell_matrix, cell_rhs, local_dof_indices, system_matrix, system_rhs);
+      assemble_system_one_cell(cell, scratch, copy);
+      assemble_mutex.lock();
+      copy_one_cell(copy);
+      assemble_mutex.unlock();
     }
+}
+
+
+
+template <int dim>
+void
+Poisson<dim>::assemble_system()
+{
+  TimerOutput::Scope timer_section(timer, "assemble_system");
+  QGauss<dim>        quadrature_formula(fe->degree + 1);
+  QGauss<dim - 1>    face_quadrature_formula(fe->degree + 1);
+
+  ScratchData scratch(*mapping,
+                      *fe,
+                      quadrature_formula,
+                      update_values | update_gradients |
+                        update_quadrature_points | update_JxW_values,
+                      face_quadrature_formula,
+                      update_values | update_quadrature_points |
+                        update_JxW_values);
+
+  CopyData copy(fe->n_dofs_per_cell());
+
+  WorkStream::run(dof_handler.begin_active(),
+                  dof_handler.end(),
+                  *this,
+                  &Poisson<dim>::assemble_system_one_cell,
+                  &Poisson<dim>::copy_one_cell,
+                  scratch,
+                  copy);
 }
 
 
@@ -252,6 +323,7 @@ template <int dim>
 void
 Poisson<dim>::solve()
 {
+  TimerOutput::Scope timer_section(timer, "solve");
   if (use_direct_solver == true)
     {
       SparseDirectUMFPACK system_matrix_inverse;
@@ -278,6 +350,7 @@ template <int dim>
 void
 Poisson<dim>::estimate()
 {
+  TimerOutput::Scope timer_section(timer, "estimate");
   if (estimator_type == "exact")
     {
       error_per_cell = 0;
@@ -376,6 +449,7 @@ template <int dim>
 void
 Poisson<dim>::mark()
 {
+  TimerOutput::Scope timer_section(timer, "mark");
   if (marking_strategy == "global")
     {
       for (const auto &cell : triangulation.active_cell_iterators())
@@ -407,6 +481,7 @@ template <int dim>
 void
 Poisson<dim>::output_results(const unsigned cycle) const
 {
+  TimerOutput::Scope    timer_section(timer, "output_results");
   DataOut<dim>          data_out;
   DataOutBase::VtkFlags flags;
   flags.write_higher_order_cells = true;
@@ -434,6 +509,10 @@ template <int dim>
 void
 Poisson<dim>::print_system_info()
 {
+  if (number_of_threads != -1 && number_of_threads > 0)
+    MultithreadInfo::set_thread_limit(
+      static_cast<unsigned int>(number_of_threads));
+
   std::cout << "Number of cores  : " << MultithreadInfo::n_cores() << std::endl
             << "Number of threads: " << MultithreadInfo::n_threads()
             << std::endl;
