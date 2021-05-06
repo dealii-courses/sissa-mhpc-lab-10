@@ -1,0 +1,95 @@
+\documentclass[border=10pt]{standalone}
+\usepackage{verbatim}
+\usepackage{filecontents}
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+
+% This command is used to plot a triangle with a fixed slope in LogLog 
+% coordinates
+
+\newcommand{\logLogSlopeTriangleReversed}[6]
+{
+    % #1. Relative offset in x direction.
+    % #2. Width in x direction, so xA-xB.
+    % #3. Relative offset in y direction.
+    % #4. Slope d(y)/d(log10(x)).
+    % #5. Plot options.
+
+    \pgfplotsextra
+    {
+        \pgfkeysgetvalue{/pgfplots/xmin}{\xmin}
+        \pgfkeysgetvalue{/pgfplots/xmax}{\xmax}
+        \pgfkeysgetvalue{/pgfplots/ymin}{\ymin}
+        \pgfkeysgetvalue{/pgfplots/ymax}{\ymax}
+
+        % Calculate auxilliary quantities, in relative sense.
+        \pgfmathsetmacro{\xArel}{#1}
+        \pgfmathsetmacro{\yArel}{#3}
+        \pgfmathsetmacro{\xBrel}{#1-#2}
+        \pgfmathsetmacro{\xCrel}{\xBrel}
+        %\pgfmathsetmacro{\yCrel}{ln(\yC/exp(\ymin))/ln(exp(\ymax)/exp(\ymin))} % REPLACE THIS EXPRESSION WITH AN EXPRESSION INDEPENDENT OF \yC TO PREVENT THE 'DIMENSION TOO LARGE' ERROR.
+
+        \pgfmathsetmacro{\lnxB}{\xmin*(1-(#1-#2))+\xmax*(#1-#2)} % in [xmin,xmax].
+        \pgfmathsetmacro{\lnxA}{\xmin*(1-#1)+\xmax*#1} % in [xmin,xmax].
+        \pgfmathsetmacro{\lnyA}{\ymin*(1-#3)+\ymax*#3} % in [ymin,ymax].
+        \pgfmathsetmacro{\lnyC}{\lnyA+#4*(\lnxA-\lnxB)}
+        \pgfmathsetmacro{\yCrel}{\lnyC-\ymin)/(\ymax-\ymin)} % THE IMPROVED EXPRESSION WITHOUT 'DIMENSION TOO LARGE' ERROR.
+        \pgfmathsetmacro{\yBrel}{\yArel}
+        \pgfmathsetmacro{\lab}{#6}
+
+        % Define coordinates for \draw. MIND THE 'rel axis cs' as opposed to the 'axis cs'.
+        \coordinate (A) at (rel axis cs:\xArel,\yArel);
+        \coordinate (B) at (rel axis cs:\xBrel,\yBrel);
+        \coordinate (C) at (rel axis cs:\xCrel,\yCrel);
+
+        % Draw slope triangle.
+        \draw[#5]   (A)-- 
+                    (B)-- node[pos=0.5,anchor=east] {\lab}
+                    (C)-- 
+                    cycle;
+    }
+}
+%%% END MACRO FOR ANNOTATION OF TRIANGLE WITH SLOPE %%%.
+
+
+\begin{document}
+
+% Once you have your own tables, you can uncomment this, and use your own files.
+
+%\pgfplotstableread[comment chars={d}]{../build/error.txt}\mytable
+\pgfplotstableread[comment chars={c}]{
+    cells dofs  u_L2_norm u_Linfty_norm u_H1_seminorm estimator 
+    5    25 5.561e-01     4.675e-01     6.544e-01 1.777e+00 
+   20    89 1.806e-01     1.359e-01     3.148e-01 1.046e+00 
+   80   337 4.679e-02     3.521e-02     1.228e-01 5.161e-01 
+  320  1313 1.164e-02     8.877e-03     4.509e-02 2.151e-01 
+ 1280  5185 2.884e-03     2.223e-03     1.620e-02 8.246e-02 
+ 5120 20609 7.168e-04     5.561e-04     5.773e-03 3.035e-02  
+}\mytable
+
+\pgfplotsset{width=11cm,compat=1.8}
+
+\begin{tikzpicture}
+\begin{loglogaxis}[
+    xlabel={\#DoFs},
+    ylabel={$L^2$, $L^\infty$, $H^1$, and estimator},
+    grid=both,
+    legend entries={%$L^2$ error, $L^\infty$, $H^1$ error, 
+    Error Estimator}, 
+    legend pos=outer north east
+]
+
+% \addplot table[x=1, y=2] {\mytable};
+% \addplot table[x=1, y=3] {\mytable};
+% \addplot table[x=1, y=4] {\mytable};
+\addplot table[x=1, y=5] {\mytable};
+
+\logLogSlopeTriangleReversed{.7}{0.3}{0.1}{.5}{black}{0.5}
+
+% \logLogSlopeTriangleReversed{.9}{0.8}{0.05}{1}{black}{1}
+
+\end{loglogaxis}
+\end{tikzpicture}
+
+\end{document}
+
