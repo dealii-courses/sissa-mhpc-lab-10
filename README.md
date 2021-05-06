@@ -5,7 +5,7 @@
 
 Starter code documentation can be accessed here:
 
-https://dealii-courses.github.io/sissa-mhpc-lab-07/
+https://dealii-courses.github.io/sissa-mhpc-lab-08/
 
 * * * * *
 
@@ -33,43 +33,28 @@ in parallel using shared memory parallelization on multiple threads, and you
 will have some knowledge of Task based parallelization
 ## Lab-07
 
-1. Instrument your `Poisson` solver with a `TimerOutput` class, and extract
-timing information about each method of the `Poisson` class (see
-https://www.dealii.org/current/doxygen/deal.II/classTimerOutput.html) using
-scoped timers. Make a couple of test runs, and keep aside both the parameter
-file you used to run the code, and the timing results
+1. Repeat the basic MPI commands from the file mpihello/main.cc and understand
+how things work
 
-2. Read the documentation about shared memory parallelization here:
-   https://www.dealii.org/current/doxygen/deal.II/group__threads.html
+2. Read carefully the documentation of `step-40`, and adapt your poisson solver
+to become a parallel distributed solver
 
-3. Add the parameter
-   
-    - `Maximum number of threads`
-   
-which is allowed to take an integer number. A value of `-1` means *choose
-automatically*. For any other number, make sure you call `MultithreadInfo::set_thread_limit` with the given argument
+3. Make the solver run in "hypbrid" parallelization mode, i.e., according the
+number of threads you specified in the parameter file, assemble things in
+parallel using both MPI and multithread
 
-4. Make a *coarse granined* parallelization using `Threads::Thread` or
-`Threads::ThreadGroup` on each major task of your `Poisson` solver. Experiment
-by changing the argument above, and report on the speed up of your code when
-using multiple threads, compared with the results you obtained in step 1 above
+2. Similar to what is shown in the lecture, visualize the view of the mesh from
+each individual processor using ``GridOut::write_vtk`` and the "global" mesh.
+Use 3 MPI tasks for this
 
-5. Use `Threads::split_range` to assemble the system in parallel with as many
-CPUS as you have available. Check that you do get an improvement
+3. Create a simple mesh (hyper_cube refined twice globally), run with two MPI
+tasks and print locally owned, locally active, and locally relevant
+``IndexSet`` for each task
 
-6. Using the default `ScratchData` and `CopyData` objects of deal.II (i.e.,
-https://www.dealii.org/current/doxygen/deal.II/classMeshWorker_1_1ScratchData.html
-and
-https://www.dealii.org/current/doxygen/deal.II/structMeshWorker_1_1CopyData.html
-replace the `Threads::split_range` assembly by one based on the use of the
-`WorkStream::run` method, and compare the running times with your original
-code
+4. Switch to release mode (``make release``), decide on a global refinement
+level that takes in the order of 30-60 seconds to solve, and study assembly and
+solve time with 1,2,4,8,12,16 MPI tasks. Which is the fastest, do the timings
+make sense based on how many cores your machine has?
 
-7. Document all methods and members of the `Poisson` class, using `Doxygen`
-syntax. Make sure that the GitHub Action `documentation.yaml` is working, and
-generates the documentation of your code automatically. If everything works,
-you should be able to access it as
-`https://username.github.io/sissa-mhpc-lab-07-username/` as soon as as the
-action has completed (provided that you enable the Pages section of your
-repository, and point to the root folder on the `gh-pages` branch, which is
-generated automatically by the Doxygen action)
+5. Play with the test problem by switching to 3d and changing the geometry to
+something interesting. Your choice!
