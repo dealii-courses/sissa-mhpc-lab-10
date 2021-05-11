@@ -29,6 +29,9 @@
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/base/timer.h>
 
+#include <deal.II/distributed/grid_refinement.h>
+#include <deal.II/distributed/tria.h>
+
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_tools.h>
 
@@ -42,6 +45,7 @@
 #include <deal.II/lac/affine_constraints.h>
 #include <deal.II/lac/dynamic_sparsity_pattern.h>
 #include <deal.II/lac/full_matrix.h>
+#include <deal.II/lac/generic_linear_algebra.h>
 #include <deal.II/lac/precondition.h>
 #include <deal.II/lac/solver_cg.h>
 #include <deal.II/lac/sparse_matrix.h>
@@ -56,6 +60,22 @@
 
 #include <fstream>
 #include <iostream>
+
+#define FORCE_USE_OF_TRILINOS
+
+namespace LA
+{
+#if defined(DEAL_II_WITH_PETSC) && !defined(DEAL_II_PETSC_WITH_COMPLEX) && \
+  !(defined(DEAL_II_WITH_TRILINOS) && defined(FORCE_USE_OF_TRILINOS))
+  using namespace dealii::LinearAlgebraPETSc;
+#  define USE_PETSC_LA
+#elif defined(DEAL_II_WITH_TRILINOS)
+  using namespace dealii::LinearAlgebraTrilinos;
+#else
+#  error DEAL_II_WITH_PETSC or DEAL_II_WITH_TRILINOS required
+#endif
+} // namespace LA
+
 
 // Forward declare the tester class
 template <typename Integral>
@@ -130,17 +150,26 @@ protected:
   void
   output_results(const unsigned cycle) const;
 
+  MPI_Comm mpi_communicator;
+
+  ConditionalOStream  pcout;
   mutable TimerOutput timer;
 
-  Triangulation<dim>                    triangulation;
-  std::unique_ptr<FE_Q<dim>>            fe;
-  std::unique_ptr<MappingQGeneric<dim>> mapping;
-  DoFHandler<dim>                       dof_handler;
-  AffineConstraints<double>             constraints;
-  SparsityPattern                       sparsity_pattern;
-  SparseMatrix<double>                  system_matrix;
-  Vector<double>                        solution;
-  Vector<double>                        system_rhs;
+  parallel::distributed::Triangulation<dim> triangulation;
+  std::unique_ptr<FE_Q<dim>>                fe;
+  std::unique_ptr<MappingQGeneric<dim>>     mapping;
+  DoFHandler<dim>                           dof_handler;
+  AffineConstraints<double>                 constraints;
+
+  // Only needed changes for MPI
+  IndexSet locally_owned_dofs;
+  IndexSet locally_relevant_dofs;
+
+  LA::MPI::SparseMatrix system_matrix;
+  LA::MPI::Vector       locally_relevant_solution;
+  LA::MPI::Vector       solution;
+  LA::MPI::Vector       system_rhs;
+
 
   Vector<float>             error_per_cell;
   std::string               estimator_type                    = "exact";

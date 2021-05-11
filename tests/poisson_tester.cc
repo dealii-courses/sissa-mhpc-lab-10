@@ -7,8 +7,7 @@
 
 using namespace dealii;
 
-using PoissonTestTypes = ::testing::Types<std::integral_constant<int, 1>,
-                                          std::integral_constant<int, 2>,
+using PoissonTestTypes = ::testing::Types<std::integral_constant<int, 2>,
                                           std::integral_constant<int, 3>>;
 
 
