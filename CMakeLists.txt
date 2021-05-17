@@ -11,18 +11,23 @@ DEAL_II_INITIALIZE_CACHED_VARIABLES()
 SET(CMAKE_MACOSX_RPATH 1)
 
 # Executable for the exerciese
-ADD_EXECUTABLE(poisson source/poisson.cc source/main.cc)
-DEAL_II_SETUP_TARGET(poisson)
+ADD_EXECUTABLE(linear_elasticity 
+    source/base_problem.cc 
+    source/linear_elasticity.cc 
+    source/poisson.cc 
+    source/main.cc)
+    
+DEAL_II_SETUP_TARGET(linear_elasticity)
 
 # Library of the executable
-ADD_LIBRARY(poisson-lib SHARED $<TARGET_OBJECTS:poisson>)
-DEAL_II_SETUP_TARGET(poisson-lib)
+ADD_LIBRARY(linear_elasticity-lib SHARED $<TARGET_OBJECTS:linear_elasticity>)
+DEAL_II_SETUP_TARGET(linear_elasticity-lib)
 
 # Tester executable
 FIND_PACKAGE(GTest)
 FILE(GLOB test_files tests/*cc)
 ADD_EXECUTABLE(gtest ${test_files})
-TARGET_LINK_LIBRARIES(gtest ${GTEST_LIBRARY} poisson-lib)   
+TARGET_LINK_LIBRARIES(gtest ${GTEST_LIBRARY} linear_elasticity-lib)   
 DEAL_II_SETUP_TARGET(gtest)
 
 INCLUDE_DIRECTORIES(${GTEST_INCLUDE_DIRS} ./include/)
