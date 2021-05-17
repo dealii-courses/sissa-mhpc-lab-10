@@ -16,6 +16,7 @@
     "files.associations": {
         "*.inst": "cpp",
         "*.inst.in": "cpp",
-        "*.h": "cpp"
+        "*.h": "cpp",
+        "string": "cpp"
     }
 }

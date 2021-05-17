@@ -274,13 +274,22 @@ BaseProblem<dim>::assemble_system()
 
   CopyData copy(fe->n_dofs_per_cell());
 
-  for (const auto &cell : dof_handler.active_cell_iterators())
-    if (cell->is_locally_owned())
-      {
-        assemble_system_one_cell(cell, scratch, copy);
-        copy_one_cell(copy);
-      }
+  auto worker = [&](const auto &cell, auto &scratch, auto &copy) {
+    assemble_system_one_cell(cell, scratch, copy);
+  };
 
+  auto copier = [&](const auto &copy) { copy_one_cell(copy); };
+
+  using CellFilter =
+    FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>;
+
+  WorkStream::run(
+    CellFilter(IteratorFilters::LocallyOwnedCell(), dof_handler.begin_active()),
+    CellFilter(IteratorFilters::LocallyOwnedCell(), dof_handler.end()),
+    worker,
+    copier,
+    scratch,
+    copy);
 
   system_matrix.compress(VectorOperation::add);
   system_rhs.compress(VectorOperation::add);
@@ -488,13 +497,13 @@ BaseProblem<dim>::print_system_info()
     MultithreadInfo::set_thread_limit(
       static_cast<unsigned int>(number_of_threads));
 
-  pcout << "Number of cores        : " << MultithreadInfo::n_cores()
+  pcout << "Number of cores         : " << MultithreadInfo::n_cores()
         << std::endl
-        << "Number of threads      : " << MultithreadInfo::n_threads()
+        << "Number of threads       : " << MultithreadInfo::n_threads()
         << std::endl
-        << "Number of MPI processes: "
+        << "Number of MPI processes : "
         << Utilities::MPI::n_mpi_processes(mpi_communicator) << std::endl
-        << "Number of MPI processes: "
+        << "MPI rank of this process: "
         << Utilities::MPI::this_mpi_process(mpi_communicator) << std::endl;
 }
 
