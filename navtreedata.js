@@ -25,7 +25,7 @@
 var NAVTREE =
 [
   [ "Theory and Practice of FEM -- a parametrized Poisson Solver", "index.html", [
-    [ "Adaptive FEM for Poisson problem", "index.html", null ],
+    [ "Adaptive FEM", "index.html", null ],
     [ "Namespaces", "namespaces.html", [
       [ "Namespace List", "namespaces.html", "namespaces_dup" ]
     ] ],
@@ -54,17 +54,18 @@ var NAVTREE =
 
 var NAVTREEINDEX =
 [
-"annotated.html",
-"group__constraints.html#ga011e6f24f1225bef56c5411759b765a0",
-"namespaceDoFTools.html#a95b262f765c69eef5fd9d4248562ef0d",
-"namespaceGridTools.html#a995b90803c22dbe67fc6d510494b2e51a0f9bb3e7869273e59af59d0bbba24264",
-"namespaceNonMatching.html#a0799b0e2aa59156a51d167d67afb04dd",
-"namespaceNonMatching.html#a559a1148230409c6947d2100fd952c9b",
-"namespaceNonMatching.html#a9fd75051ac629a977d0065c8d24382f4",
-"namespaceNonMatching.html#aec0ae76381eb4c276cc0df29b31ada36",
-"namespaceUtilities.html#a676dac426776229059424f0d3344e2ec",
-"namespaceVectorTools.html#a05db6c8cebf924b417dd92f525efe3db",
-"namespaceinternal_1_1p4est.html#a60b3575160ba1ba0fdc2d74d63673734"
+"",
+"group__CUDAWrappers.html#ga24737392cf3a8f8f42245c9a83b8f4bb",
+"namespaceCUDAWrappers_1_1internal_1_1internal.html#a45e96494c8c8e7351ce328b1f2e5a2c1",
+"namespaceFETools.html#ac0fe5c7f55db091a4477af7c3989b83c",
+"namespaceLAPACKSupport.html#a45557450a3c1ae0e74d7ddf12c43bc98a1c0655acd718579199c777967de9eea5",
+"namespaceNonMatching.html#a2381f587b4fbf7cccbdb002b7067be9f",
+"namespaceNonMatching.html#a6d5ad5bc07ad08e03cabf0c457854b41",
+"namespaceNonMatching.html#ab8ee6696e7bc1806386cf3b91ea46fd1",
+"namespaceOpenCASCADE.html#a614ec9f581086ad423513dd407e9e520",
+"namespaceUtilities_1_1MPI.html#a3354767069b32a6827a5c9e5212babae",
+"namespaceVectorTools.html#af72dcb595cc262bec07ca5c81614586f",
+"namespacetypes.html#ae22a1b4da339109d8dc9cc2a112b1a69"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';
