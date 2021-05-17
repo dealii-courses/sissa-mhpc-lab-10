@@ -223,6 +223,9 @@ BaseProblem<dim>::setup_system()
                                    mpi_communicator);
 
   error_per_cell.reinit(triangulation.n_active_cells());
+
+  // Now call anything that may be needed
+  setup_system_call_back();
 }
 
 
@@ -433,6 +436,22 @@ BaseProblem<dim>::mark()
 
 
 
+// template <int dim>
+// void
+// BaseProblem<dim>::add_data_vectors(DataOut<dim> &data_out) const
+// {
+//   std::vector<std::string> names(n_components, "u");
+//   std::vector<DataComponentInterpretation::DataComponentInterpretation>
+//     interpretation(n_components,
+//                    DataComponentInterpretation::component_is_part_of_vector);
+
+//   data_out.add_data_vector(locally_relevant_solution,
+//                            names,
+//                            DataOut<dim>::type_dof_data,
+//                            interpretation);
+// }
+
+
 template <int dim>
 void
 BaseProblem<dim>::output_results(const unsigned cycle) const
@@ -443,17 +462,8 @@ BaseProblem<dim>::output_results(const unsigned cycle) const
   flags.write_higher_order_cells = true;
   data_out.set_flags(flags);
   data_out.attach_dof_handler(dof_handler);
-
-  std::vector<std::string> names(n_components, "u");
-  std::vector<DataComponentInterpretation::DataComponentInterpretation>
-    interpretation(n_components,
-                   DataComponentInterpretation::component_is_part_of_vector);
-
-  data_out.add_data_vector(locally_relevant_solution,
-                           names,
-                           DataOut<dim>::type_dof_data,
-                           interpretation);
-
+  // Attach to this signal to output more stuff
+  add_data_vector(data_out);
   data_out.add_data_vector(error_per_cell, "estimator");
   data_out.build_patches(*mapping,
                          std::max(mapping_degree, fe->degree),

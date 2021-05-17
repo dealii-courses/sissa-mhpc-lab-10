@@ -27,7 +27,7 @@ main(int argc, char **argv)
       else
         deallog.depth_console(0);
 
-      BaseProblem<2> base_problem;
+      LinearElasticity<2> base_problem;
       base_problem.initialize(par_name);
       base_problem.run();
     }

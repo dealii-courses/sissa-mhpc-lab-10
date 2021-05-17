@@ -59,6 +59,8 @@
 #include <deal.II/numerics/matrix_tools.h>
 #include <deal.II/numerics/vector_tools.h>
 
+#include <boost/signals2.hpp>
+
 #include <fstream>
 #include <iostream>
 
@@ -90,7 +92,7 @@ using namespace dealii;
  * namespace.
  */
 template <int dim>
-class BaseProblem : ParameterAcceptor
+class BaseProblem : public ParameterAcceptor
 {
 public:
   /**
@@ -208,6 +210,11 @@ protected:
   setup_system();
 
   /**
+   * A signal that is called at the end of setup_system()
+   */
+  boost::signals2::signal<void()> setup_system_call_back;
+
+  /**
    * Actually loop over cells, and assemble the global system.
    */
   void
@@ -221,6 +228,11 @@ protected:
    */
   virtual void
   output_results(const unsigned cycle) const;
+
+  /**
+   * Connect to this signal to add data vectors.
+   */
+  boost::signals2::signal<void(DataOut<dim> &)> add_data_vector;
 
   /**
    * Number of components.

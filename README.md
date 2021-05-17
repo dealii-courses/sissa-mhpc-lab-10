@@ -1,65 +1,39 @@
-#  Lab 09 - Vector valued problems
+#  Lab 10 - Mixed problems: Stokes
 ## Theory and Practice of Finite Elements
 
 **Luca Heltai** <luca.heltai@sissa.it>
 
 Starter code documentation can be accessed here:
 
-https://dealii-courses.github.io/sissa-mhpc-lab-08/
+https://dealii-courses.github.io/sissa-mhpc-lab-10/
 
 * * * * *
+## Lab-10
 
-## General Instructions
+1. Copy the `BaseProblem` class to a `BaseBlockProblem` class, and replace the
+flat versions of the Linear alagebra classes with `Block` versions, initialized
+with a number of blocks deduced at construction time, using a `blocking`
+parameter, i.e., `blocking = {0, 0, 0, 1}` will refer to a system with two
+blocks, where in the first block we group the first three components (`0,0,0`
+-> `0` is the block index), and in the second block we group the fourth
+component.
 
-For each of the point below, extend the `Poisson` class with functions that
-perform the indicated tasks, trying to minimize the amount of code you copy and
-paste, possibly restructuring existing code by adding arguments to existing
-functions, and generating wrappers similar to the `run` method (e.g.,
-`run_exercise_3`).
+2. Make sure you renumber your degrees of freedom block-wise, and you
+initialize the block matrices with the correct block structure. Take as an
+example `step-32` of the library.
 
-Once you created a function that performs the given task, add it to the
-`poisson-tester.cc` file, and make sure all the exercises are run through the
-`gtest` executable, e.g., adding a test for each exercise, as in the following
-snippet:
+3. Create a `Stokes` problem, derived from the `BaseBlockProblem` class, and
+assemble the mixed stokes system.
 
-```C++
-TEST_F(PoissonTester, Exercise3) {
-   run_exercise_3();
-}
-```
+4. Use the `LinearOperator` class facilities to create an efficient Schur
+complement solver for the Stokes system (follow the discussion on `step-60` for
+the resolution of the block system).
 
-By the end of this laboratory, you will have modified your Poisson code to run
-in parallel using shared memory parallelization on multiple threads, and you
-will have some knowledge of Task based parallelization
-## Lab-09
-
-1. Transform your `PoissonProblem` code to a `LinearElasticityProblem` class
-(create a copy of the `PoissonProblem` class, and modify your copy)
-
-2. Add a `n_components=dim` argument to the `LinearElasticityProblem` class,
-and make sure that all members that need to know the number of components of
-the problem (e.g., all classes derived from the `dealii::Function` class) throw
-an assertion in Debug mode if the number of components is wrong.
-
-3. Create the finite element space from the parameter file using
-`FETools::get_fe_by_name`, and check with an assertion that the number of
-components is correct (removing `fe_degree` from the parameters).
-
-4. Add the parameters `mu` and `lambda` to the parameter file, and assemble the
-problem `(mu eps u, eps v) + (lambda div u, div v) = (f,v)` where `u` and `v`
-are in $H^1_0(\Omega)^{dim}$, and `eps u = 0.5((grad u) + (grad u)^T)`. Make
-sure you add `mu` and `lambda` to the problem constants map, so you can use
-them in the functions and in the exact soluion.
-
-5. Make sure the output of your code is vector based, by instructing `DataOut`
-to output a vector based solution.
-
-6. Create a common class `BaseProblem`, that contains everything that is shared
-between `PoissonProblem` and `LinearElasticity`, and make sure both
-`PoissonProblem` and `LinearElasticityProblem` are derived from the base class.
-Make sure you initialize the `ParameterAcceptor` class explicitly in the
-`BaseProblem`, and then in the derived classes.
-
-7. Make sure you create a `LinearElasticityProblemTester` class to test your
-problem using gtest, and create pure shear and pure compression/dilation test
-cases.
+5. Create a non-trivial manufactured solution starting from an arbitrary vector
+valued smooth function, and take its curl (this is automatically divergence
+free) as an expected velocity solution. Check the error convergence for
+Taylor-Hood FESystem. What happens for the following choices of finite element
+spaces, on a uniformly refined squared mesh?
+   1. FE_Q(1)^d-FE_DGQ(0) 
+   2. FE_Q(2)^d-FE_DGP(1) 
+   3. FE_Q(2)^d-FE_Q(1)

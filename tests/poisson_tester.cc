@@ -32,7 +32,7 @@ TEST_F(Poisson2DTester, TestLinear)
   str << "subsection Poisson<2>" << std::endl
       << "  set Dirichlet boundary condition expression = x" << std::endl
       << "  set Dirichlet boundary ids                  = 0" << std::endl
-      << "  set Finite element degree                   = 1" << std::endl
+      << "  set Finite element space                    = FE_Q(1)" << std::endl
       << "  set Forcing term expression                 = 0" << std::endl
       << "  set Grid generator arguments                = 0: 1: false"
       << std::endl
@@ -68,7 +68,7 @@ TEST_F(Poisson2DTester, TestQuadratic)
   str << "subsection Poisson<2>" << std::endl
       << "  set Dirichlet boundary condition expression = x^2" << std::endl
       << "  set Dirichlet boundary ids                  = 0" << std::endl
-      << "  set Finite element degree                   = 2" << std::endl
+      << "  set Finite element space                    = FE_Q(2)" << std::endl
       << "  set Forcing term expression                 = -2" << std::endl
       << "  set Grid generator arguments                = 0: 1: false"
       << std::endl
@@ -106,7 +106,7 @@ TEST_F(Poisson2DTester, TestMixedBC1)
   str << "subsection Poisson<2>" << std::endl
       << "  set Dirichlet boundary condition expression = x^2" << std::endl
       << "  set Dirichlet boundary ids                  = 1,2,3" << std::endl
-      << "  set Finite element degree                   = 2" << std::endl
+      << "  set Finite element space                    = FE_Q(2)" << std::endl
       << "  set Forcing term expression                 = -2" << std::endl
       << "  set Grid generator arguments                = 0: 1: true"
       << std::endl
@@ -145,7 +145,7 @@ TEST_F(Poisson2DTester, TestLinearWithHangingNodes)
   str << "subsection Poisson<2>" << std::endl
       << "  set Dirichlet boundary condition expression = x" << std::endl
       << "  set Dirichlet boundary ids                  = 0" << std::endl
-      << "  set Finite element degree                   = 1" << std::endl
+      << "  set Finite element space                    = FE_Q(1)" << std::endl
       << "  set Forcing term expression                 = 0" << std::endl
       << "  set Grid generator arguments                = 0: 1: false"
       << std::endl
@@ -196,7 +196,7 @@ TEST_F(Poisson2DTester, TestLinearWithHangingNodesUsingPars)
       << "  set Dirichlet boundary condition expression = x" << std::endl
       << "  set Exact solution expression = x" << std::endl
       << "  set Dirichlet boundary ids                  = 0" << std::endl
-      << "  set Finite element degree                   = 1" << std::endl
+      << "  set Finite element space                    = FE_Q(1)" << std::endl
       << "  set Forcing term expression                 = 0" << std::endl
       << "  set Grid generator arguments                = 0: 1: false"
       << std::endl
