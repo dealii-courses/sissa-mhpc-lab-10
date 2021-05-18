@@ -10,7 +10,7 @@ https://dealii-courses.github.io/sissa-mhpc-lab-10/
 * * * * *
 ## Lab-10
 
-1. Copy the `BaseProblem` class to a `BaseBlockProblem` class, and replace the
+1. Derive from the `BaseProblem` class a `BaseBlockProblem` class, replacing the
 flat versions of the Linear alagebra classes with `Block` versions, initialized
 with a number of blocks deduced at construction time, using a `blocking`
 parameter, i.e., `blocking = {0, 0, 0, 1}` will refer to a system with two
@@ -34,6 +34,6 @@ valued smooth function, and take its curl (this is automatically divergence
 free) as an expected velocity solution. Check the error convergence for
 Taylor-Hood FESystem. What happens for the following choices of finite element
 spaces, on a uniformly refined squared mesh?
-   1. FE_Q(1)^d-FE_DGQ(0) 
-   2. FE_Q(2)^d-FE_DGP(1) 
+   1. FE_Q(1)^d-FE_DGQ(0)
+   2. FE_Q(2)^d-FE_DGP(1)
    3. FE_Q(2)^d-FE_Q(1)

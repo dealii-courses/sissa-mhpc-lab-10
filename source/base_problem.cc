@@ -56,7 +56,7 @@ BaseProblem<dim>::BaseProblem(const unsigned int &n_components,
   , dirichlet_boundary_condition(n_components)
   , neumann_boundary_condition(n_components)
   , error_table(std::vector<std::string>(n_components, "u"))
-  , solver_control("Solver control", 1000, 1e-12, 1e-12)
+  , solver_control("/Solver control", 1000, 1e-12, 1e-12)
 {
   TimerOutput::Scope timer_section(timer, "constructor");
   add_parameter("Finite element space", fe_name);

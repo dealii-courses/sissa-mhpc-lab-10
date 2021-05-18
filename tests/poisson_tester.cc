@@ -122,6 +122,7 @@ TEST_F(Poisson2DTester, TestMixedBC1)
       << "end" << std::endl;
 
   parse_string(str.str());
+  initialize("");
   make_grid();
   setup_system();
   assemble_system();
