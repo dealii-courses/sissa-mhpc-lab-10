@@ -475,7 +475,7 @@ run(int argc, char **argv)
     {
       using namespace dealii;
 
-      Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, 1);
+      Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv);
       std::string                      par_name = "";
       if (argc > 1)
         par_name = argv[1];

@@ -146,8 +146,8 @@ BaseProblem<dim>::make_grid()
       triangulation.execute_coarsening_and_refinement();
     }
 
-  std::cout << "Number of active cells: " << triangulation.n_active_cells()
-            << std::endl;
+  pcout << "Number of active cells: " << triangulation.n_active_cells()
+        << std::endl;
 }
 
 
