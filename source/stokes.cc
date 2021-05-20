@@ -23,6 +23,8 @@
 #include <deal.II/lac/linear_operator_tools.h>
 #include <deal.II/lac/solver_gmres.h>
 
+#include <deal.II/numerics/error_estimator.h>
+
 using namespace dealii;
 
 namespace
@@ -151,6 +153,42 @@ Stokes<dim>::solve()
                PreconditionIdentity());
   this->constraints.distribute(this->block_solution);
   this->locally_relevant_block_solution = this->block_solution;
+}
+
+
+
+template <int dim>
+void
+Stokes<dim>::estimate()
+{
+  TimerOutput::Scope timer_section(this->timer, "estimate");
+  if (this->estimator_type == "kelly")
+    {
+      std::map<types::boundary_id, const Function<dim> *> neumann;
+      for (const auto id : this->neumann_ids)
+        neumann[id] = &this->neumann_boundary_condition;
+
+      QGauss<dim - 1> face_quad(this->fe->degree + 1);
+      KellyErrorEstimator<dim>::estimate(*this->mapping,
+                                         this->dof_handler,
+                                         face_quad,
+                                         neumann,
+                                         this->locally_relevant_block_solution,
+                                         this->error_per_cell,
+                                         this->fe->component_mask(velocity));
+    }
+  else
+    {
+      AssertThrow(false, ExcNotImplemented());
+    }
+  auto global_estimator = this->error_per_cell.l2_norm();
+  this->error_table.add_extra_column("estimator", [global_estimator]() {
+    return global_estimator;
+  });
+  this->error_table.error_from_exact(*this->mapping,
+                                     this->dof_handler,
+                                     this->locally_relevant_block_solution,
+                                     this->exact_solution);
 }
 
 

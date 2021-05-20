@@ -66,6 +66,9 @@ protected:
   virtual void
   solve() override;
 
+  virtual void
+  estimate() override;
+
   /**
    * Extractor to use in the assembly routine.
    */

@@ -92,8 +92,8 @@ BaseBlockProblem<dim>::setup_system()
     non_blocked_locally_relevant_dofs.split_by_block(dofs_per_block);
 
   this->pcout << "Number of degrees of freedom: " << this->dof_handler.n_dofs()
+              << " (" << Patterns::Tools::to_string(dofs_per_block) << ")"
               << std::endl;
-
 
   this->constraints.clear();
   this->constraints.reinit(non_blocked_locally_relevant_dofs);
@@ -116,12 +116,15 @@ BaseBlockProblem<dim>::setup_system()
   DoFTools::make_sparsity_pattern(this->dof_handler,
                                   dsp,
                                   this->constraints,
-                                  false);
+                                  false,
+                                  Utilities::MPI::this_mpi_process(
+                                    this->mpi_communicator));
+
   // SparsityTools::distribute_sparsity_pattern(dsp,
   //                                            locally_owned_dofs,
   //                                            mpi_communicator,
   //                                            locally_relevant_dofs);
-
+  dsp.compress();
 
   system_block_matrix.reinit(dsp);
 

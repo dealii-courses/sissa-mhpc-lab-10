@@ -187,7 +187,7 @@ protected:
    * Perform a posteriori error estimation, and store the results in the
    * `error_per_cell` vector.
    */
-  void
+  virtual void
   estimate();
 
   /**
