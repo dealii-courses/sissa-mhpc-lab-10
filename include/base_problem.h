@@ -168,7 +168,7 @@ protected:
    *
    * @param copy The local data to distribute on the system matrix and rhs.
    */
-  void
+  virtual void
   copy_one_cell(const CopyData &copy);
 
   /**
@@ -180,7 +180,7 @@ protected:
   /**
    * Solve the global system.
    */
-  void
+  virtual void
   solve();
 
   /**
@@ -206,7 +206,7 @@ protected:
    * Initial setup: distribute degrees of freedom, make all vectors and matrices
    * of the right size, initialize functions and pointers.
    */
-  void
+  virtual void
   setup_system();
 
   /**
@@ -217,7 +217,7 @@ protected:
   /**
    * Actually loop over cells, and assemble the global system.
    */
-  void
+  virtual void
   assemble_system();
 
   /**

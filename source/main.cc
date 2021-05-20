@@ -3,6 +3,7 @@
 #include "base_problem.h"
 #include "linear_elasticity.h"
 #include "poisson.h"
+#include "stokes.h"
 
 /**
  * \mainpage Adaptive FEM
@@ -18,4 +19,6 @@ main(int argc, char **argv)
     return run<Poisson<2>>(argc, argv);
   if (program_name.find("linear_elasticity") != std::string::npos)
     return run<LinearElasticity<2>>(argc, argv);
+  if (program_name.find("stokes") != std::string::npos)
+    return run<Stokes<2>>(argc, argv);
 }

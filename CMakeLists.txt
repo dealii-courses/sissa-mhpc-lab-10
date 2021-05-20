@@ -13,8 +13,10 @@ SET(CMAKE_MACOSX_RPATH 1)
 # Executable for the exerciese
 ADD_EXECUTABLE(linear_elasticity 
     source/base_problem.cc 
+    source/base_block_problem.cc 
     source/linear_elasticity.cc 
     source/poisson.cc 
+    source/stokes.cc 
     source/main.cc)
     
 DEAL_II_SETUP_TARGET(linear_elasticity)
